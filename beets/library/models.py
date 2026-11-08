@@ -253,13 +253,37 @@ class FormattedItemMapping(dbcore.db.FormattedMapping):
 
         Raise a KeyError for invalid keys.
         """
-        if self.album and self.for_path and key in self.album_keys:
-            return self._get_formatted(self.album, key)
         if key in self.model_keys:
+            if self.for_path and self._album_precedence(key):
+                # Accessing `self.album` fetches the item's album from
+                # the database, so only do it when an album value can
+                # take precedence. The album may be `None` even when
+                # `item.album_id` is set (its row was deleted); in that
+                # case the item's own value stands.
+                album = self.album
+                if album is not None and key in self.album_keys:
+                    return self._get_formatted(album, key)
             return self._get_formatted(self.model, key)
-        if self.album and key in self.album_keys:
-            return self._get_formatted(self.album, key)
+        # Keys the item does not define (flex attributes, computed
+        # fields) can only come from the album.
+        album = self.album
+        if album is not None and key in self.album_keys:
+            return self._get_formatted(album, key)
         raise KeyError(key)
+
+    def _album_precedence(self, key: str) -> bool:
+        """Whether the album's value for `key` takes precedence over
+        the item's own value in a path format.
+
+        Decided with the static field sets, mirroring the condition in
+        `album_keys`, so that the check itself does not fetch the
+        album from the database.
+        """
+        if isinstance(self.included_keys, list):
+            # An explicit key list treats every listed key as
+            # album-eligible.
+            return True
+        return key in Album.item_keys or key not in self.item._fields
 
     def __getitem__(self, key: str) -> str:
         """Get the value for a key.

@@ -620,6 +620,40 @@ class TestItemFormattedMapping(PytestItemHelper):
         formatted = item_in_db.formatted()
         assert formatted["albumartist"] == ""
 
+    def test_item_only_path_format_does_not_fetch_album(self, item_in_db):
+        # The item belongs to an album, so any access to its
+        # ``_cached_album`` would trigger ``Library.get_album()``.
+        album = self.lib.add_album([item_in_db])
+        assert item_in_db.album_id == album.id
+
+        with patch.object(
+            self.lib, "get_album", wraps=self.lib.get_album
+        ) as get_album:
+            result = item_in_db.evaluate_template(
+                "$artist/$title", for_path=True
+            )
+
+        assert result == "the artist/the title"
+        assert get_album.call_count == 0
+
+    def test_album_field_overrides_item_in_path_template(self, item_in_db):
+        # Make the album inconsistent with the item.
+        album = self.lib.add_album([item_in_db])
+        album.album = "foo"
+        album.store()
+        item_in_db.album = "bar"
+        item_in_db.store()
+
+        # Ensure the album takes precedence in path formats.
+        assert item_in_db.evaluate_template("$album", for_path=True) == "foo"
+
+    def test_album_flex_field_in_path_template(self, item_in_db):
+        album = self.lib.add_album([item_in_db])
+        album["flex"] = "foo"
+        album.store()
+
+        assert item_in_db.evaluate_template("$flex", for_path=True) == "foo"
+
 
 class PathFormattingMixin:
     """Utilities for testing path formatting."""
