@@ -7,7 +7,7 @@ import inspect
 import re
 import sys
 from collections import defaultdict
-from functools import cached_property, wraps
+from functools import wraps
 from importlib import import_module
 from pathlib import Path
 from typing import (
@@ -26,7 +26,6 @@ import mediafile
 import beets
 from beets import logging
 from beets.util import unique_list
-from beets.util.deprecation import deprecate_for_maintainers, deprecate_for_user
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Iterator, Sequence
@@ -116,60 +115,6 @@ class BeetsPlugin(metaclass=BeetsPluginMeta):
     early_import_stages: list[ImportStageFunc]
     import_stages: list[ImportStageFunc]
 
-    def __init_subclass__(cls) -> None:
-        """Enable legacy metadata source plugins to work with the new interface.
-
-        When a plugin subclass of BeetsPlugin defines a `data_source` attribute
-        but does not inherit from MetadataSourcePlugin, this hook:
-
-        1. Skips abstract classes.
-        2. Warns that the class should extend MetadataSourcePlugin (deprecation).
-        3. Copies any nonabstract methods from MetadataSourcePlugin onto the
-           subclass to provide the full plugin API.
-
-        This compatibility layer will be removed in the v3.0.0 release.
-        """
-        # TODO: Remove in v3.0.0
-        if inspect.isabstract(cls):
-            return
-
-        from beets.metadata_plugins import MetadataSourcePlugin
-
-        if issubclass(cls, MetadataSourcePlugin) or not hasattr(
-            cls, "data_source"
-        ):
-            return
-
-        deprecate_for_maintainers(
-            (
-                f"'{cls.__name__}' is used as a legacy metadata source since it"
-                " inherits 'beets.plugins.BeetsPlugin'. Support for this"
-            ),
-            "'beets.metadata_plugins.MetadataSourcePlugin'",
-            stacklevel=3,
-        )
-
-        method: property | cached_property[Any] | Callable[..., Any]
-        for name, method in inspect.getmembers(
-            MetadataSourcePlugin,
-            predicate=lambda f: (  # type: ignore[arg-type]
-                (
-                    isinstance(f, (property, cached_property))
-                    and not hasattr(
-                        BeetsPlugin,
-                        getattr(f, "attrname", None) or f.fget.__name__,  # type: ignore[union-attr]
-                    )
-                )
-                or (
-                    inspect.isfunction(f)
-                    and f.__name__
-                    and not getattr(f, "__isabstractmethod__", False)
-                    and not hasattr(BeetsPlugin, f.__name__)
-                )
-            ),
-        ):
-            setattr(cls, name, method)
-
     def __init__(self, name: str | None = None) -> None:
         """Perform one-time plugin setup."""
 
@@ -186,40 +131,6 @@ class BeetsPlugin(metaclass=BeetsPluginMeta):
 
         self._log = log.getChild(self.name)
         self._log.setLevel(logging.NOTSET)  # Use `beets` logger level.
-
-        # In order to verify the config we need to make sure the plugin is fully
-        # configured (plugins usually add the default configuration *after*
-        # calling super().__init__()).
-        self.register_listener("pluginload", self._verify_config)
-
-    def _verify_config(self, *_, **__) -> None:
-        """Verify plugin configuration.
-
-        If deprecated 'source_weight' option is explicitly set by the user, they
-        will see a warning in the logs. Otherwise, this must be configured by
-        a third party plugin, thus we raise a deprecation warning which won't be
-        shown to user but will be visible to plugin developers.
-        """
-        # TODO: Remove in v3.0.0
-        if (
-            not hasattr(self, "data_source")
-            or "source_weight" not in self.config
-        ):
-            return
-
-        for source in self.config.root().sources:
-            if "source_weight" in (source.get(self.name) or {}):
-                if source.filename:  # user config
-                    deprecate_for_user(
-                        self._log,
-                        f"'{self.name}.source_weight' configuration option",
-                        f"'{self.name}.data_source_mismatch_penalty'",
-                    )
-                else:  # 3rd-party plugin config
-                    deprecate_for_maintainers(
-                        "'source_weight' configuration option",
-                        "'data_source_mismatch_penalty'",
-                    )
 
     def commands(self) -> Sequence[Subcommand]:
         """Should return a list of beets.ui.Subcommand objects for
@@ -480,7 +391,6 @@ def get_plugin_names() -> list[str]:
 
     Configures the plugin search paths and resolves the final set of plugins
     based on configuration settings, inclusion filters, and exclusion rules.
-    Automatically includes the musicbrainz plugin when enabled in configuration.
     """
     paths = [
         str(Path(p).expanduser().absolute())
@@ -499,19 +409,6 @@ def get_plugin_names() -> list[str]:
     plugins = unique_list(beets.config["plugins"].as_str_seq())
     beets.config.add({"disabled_plugins": []})
     disabled_plugins = set(beets.config["disabled_plugins"].as_str_seq())
-    # TODO: Remove in v3.0.0
-    mb_enabled = beets.config["musicbrainz"].flatten().get("enabled")
-    if mb_enabled:
-        deprecate_for_user(
-            log,
-            "'musicbrainz.enabled' configuration option",
-            "'plugins' configuration to explicitly add 'musicbrainz'",
-        )
-        if "musicbrainz" not in plugins:
-            plugins.append("musicbrainz")
-    elif mb_enabled is False:
-        deprecate_for_user(log, "'musicbrainz.enabled' configuration option")
-        disabled_plugins.add("musicbrainz")
 
     return [p for p in plugins if p not in disabled_plugins]
 

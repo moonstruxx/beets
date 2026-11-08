@@ -23,7 +23,6 @@ from typing import (
 
 import requests
 import unidecode
-from confuse import NotFoundError
 
 from beets import config, logging
 from beets.util import cached_classproperty
@@ -47,9 +46,7 @@ log = logging.getLogger("beets")
 @cache
 def find_metadata_source_plugins() -> list[MetadataSourcePlugin]:
     """Return a list of all loaded metadata source plugins."""
-    # TODO: Make this an isinstance(MetadataSourcePlugin, ...) check in v3.0.0
-    # This should also allow us to remove the type: ignore comments below.
-    return [p for p in find_plugins() if hasattr(p, "data_source")]  # type: ignore[misc]
+    return [p for p in find_plugins() if isinstance(p, MetadataSourcePlugin)]
 
 
 @cache
@@ -192,10 +189,7 @@ class MetadataSourcePlugin(BeetsPlugin, metaclass=abc.ABCMeta):
 
     @cached_property
     def data_source_mismatch_penalty(self) -> float:
-        try:
-            return self.config["source_weight"].as_number()
-        except NotFoundError:
-            return self.config["data_source_mismatch_penalty"].as_number()
+        return self.config["data_source_mismatch_penalty"].as_number()
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
