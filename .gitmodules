@@ -1,0 +1,3 @@
+[submodule "beets-alternatives"]
+	path = beets-alternatives
+	url = https://github.com/geigerzaehler/beets-alternatives.git
