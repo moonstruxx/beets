@@ -4,7 +4,7 @@ import os
 import string
 import time
 from contextlib import suppress
-from functools import cached_property
+from functools import cache, cached_property
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar, Self, TypeVar
 
@@ -34,7 +34,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Iterator, KeysView, Mapping
 
     from beets.dbcore import Results, types
-    from beets.dbcore.query import FieldQuery, FieldQueryType
+    from beets.dbcore.query import FieldQuery, FieldQueryType, Query
     from beets.dbcore.sort import FieldSort
     from beets.util.functemplate import FieldTFuncs
     from beets.util.pathformats import PathFormat
@@ -44,6 +44,20 @@ if TYPE_CHECKING:
 log = logging.getLogger("beets")
 
 AlbumOrItem = TypeVar("AlbumOrItem", "Album", "Item")
+
+
+@cache
+def _parse_path_format_query(
+    query_str: str, model_cls: type[LibModel]
+) -> Query:
+    """Parse a path format's query, memoized by format string.
+
+    ``Item.destination()`` parses every path format it considers for every
+    item it is called on. The parsed query depends only on the format
+    string and the model class, so it can be reused across items.
+    """
+    query, _ = parse_query_string(query_str, model_cls)
+    return query
 
 
 class LibModel(dbcore.Model["Library"]):
@@ -1253,7 +1267,7 @@ class Item(LibModel):
         for query_str, path_format in path_formats:
             if query_str == PF_KEY_DEFAULT:
                 continue
-            query, _ = parse_query_string(query_str, type(self))
+            query = _parse_path_format_query(query_str, type(self))
             if query.match(self):
                 # The query matches the item! Use the corresponding path
                 # format.

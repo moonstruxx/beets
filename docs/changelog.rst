@@ -175,6 +175,9 @@ Other changes
 - Beets now officially supports Python 3.15.
 - :doc:`plugins/unimported`: ``ignore_extensions`` is now matched
   case-insensitively, so ``jpg`` also covers ``cover.JPG``.
+- Path computation is faster: the query of each path format is now parsed once
+  and reused instead of once per item, which speeds up ``beet move``,
+  ``beet import`` and plugins that compute destinations for many items.
 
 2.14.1 (September 17, 2026)
 ---------------------------
