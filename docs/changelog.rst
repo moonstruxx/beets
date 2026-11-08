@@ -166,6 +166,12 @@ For plugin developers
 - Import prompt choice callbacks can now read the candidate on screen from
   ``task.selected_match``, including one picked by number from the candidate
   list. It is ``None`` while the candidate list itself is shown.
+- Remove the compatibility layer for metadata source plugins written before
+  :class:`beets.metadata_plugins.MetadataSourcePlugin` existed. A plugin is now
+  a metadata source only when it subclasses that class, and no methods or
+  properties are copied onto subclasses of :class:`beets.plugins.BeetsPlugin`.
+  The deprecated ``source_weight`` option is no longer read either; use
+  ``data_source_mismatch_penalty``.
 
 Other changes
 ~~~~~~~~~~~~~
@@ -175,6 +181,9 @@ Other changes
 - Beets now officially supports Python 3.15.
 - :doc:`plugins/unimported`: ``ignore_extensions`` is now matched
   case-insensitively, so ``jpg`` also covers ``cover.JPG``.
+- The deprecated ``musicbrainz.enabled`` option no longer adds or removes the
+  MusicBrainz plugin. List ``musicbrainz`` in ``plugins`` and use
+  ``disabled_plugins`` to switch it off.
 
 2.14.1 (September 17, 2026)
 ---------------------------

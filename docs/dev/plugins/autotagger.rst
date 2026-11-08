@@ -139,10 +139,14 @@ starting points include:
 Migration guidance
 ------------------
 
-Older metadata plugins that extend |BeetsPlugin| should be migrated to
-:py:class:`MetadataSourcePlugin`. API-backed sources should generally migrate to
-:py:class:`SearchApiMetadataSourcePlugin` to avoid duplicating search
-orchestration. Legacy support will be removed in **beets v3.0.0**.
+A metadata source must subclass :py:class:`MetadataSourcePlugin`. API-backed
+sources should generally subclass :py:class:`SearchApiMetadataSourcePlugin` to
+avoid duplicating search orchestration.
+
+Plugins that only set a ``data_source`` attribute on |BeetsPlugin| are no longer
+treated as metadata sources, and no methods are copied onto them. The deprecated
+``source_weight`` option is likewise ignored; use
+:ref:`data_source_mismatch_penalty` instead.
 
 .. seealso::
 

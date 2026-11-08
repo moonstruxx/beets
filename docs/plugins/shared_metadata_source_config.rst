@@ -54,11 +54,6 @@
                 distance_weights:
                     data_source: 0.0  # Disable data source matching
 
-.. conf:: source_weight
-    :default: 0.5
-
-    .. deprecated:: 2.5 Use `data_source_mismatch_penalty`_ instead.
-
 .. conf:: search_limit
     :default: 5
 
