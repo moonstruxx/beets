@@ -136,6 +136,19 @@ class TestSanitizePath:
 
         assert util.sanitize_path(path) == expected
 
+    def test_empty_component_replace_resolved_once(self, config, monkeypatch):
+        """The ``empty_component_replace`` config is resolved only once,
+        even when ``sanitize_path()`` is called repeatedly.
+        """
+        config["empty_component_replace"] = "X"
+        monkeypatch.setattr(os, "path", posixpath)
+        monkeypatch.setattr(os, "sep", posixpath.sep)
+        monkeypatch.setattr(os, "altsep", posixpath.altsep)
+
+        assert util.sanitize_path("one//three") == "one/X/three"
+        util.sanitize_path("one//three")
+        assert util.get_empty_component_replace.cache_info().misses == 1
+
     def test_sanitize_unix_replaces_leading_dot(self):
         with _common.platform_posix():
             p = util.sanitize_path("one/.two/three")

@@ -688,6 +688,7 @@ CHAR_REPLACE = [
 ]
 
 
+@cache
 def get_empty_component_replace() -> Callable[[str], str] | None:
     """Return a callable filling in empty path components, if configured.
 
@@ -695,6 +696,10 @@ def get_empty_component_replace() -> Callable[[str], str] | None:
     is empty altogether. Both the native and the alternative separator are
     recognised, since path templates are written with forward slashes
     regardless of the platform.
+
+    The result is memoized, like `get_max_filename_length()`: the
+    configuration is a snapshot from the first call until
+    `clear_path_caches()` resets the cache.
     """
     replacement: str | Literal[False] | None = beets.config[
         "empty_component_replace"
@@ -940,6 +945,18 @@ def get_max_filename_length() -> int:
             return limit
         return min(res[9], limit)
     return limit
+
+
+def clear_path_caches() -> None:
+    """Clear the path-related configuration caches in this module.
+
+    ``get_empty_component_replace()`` and ``get_max_filename_length()``
+    snapshot the configuration on their first call; a process (or test) that
+    changes the configuration afterwards must clear these caches to observe
+    the new values.
+    """
+    get_empty_component_replace.cache_clear()
+    get_max_filename_length.cache_clear()
 
 
 def open_anything() -> str:

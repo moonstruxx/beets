@@ -205,6 +205,14 @@ def clear_cached_classproperty():
 
 
 @pytest.fixture(autouse=True)
+def clear_path_caches():
+    """Reset the config-snapshot caches in ``beets.util`` before each test,
+    because tests change ``empty_component_replace`` and friends at runtime.
+    """
+    beets.util.clear_path_caches()
+
+
+@pytest.fixture(autouse=True)
 def unload_plugins() -> Iterator[None]:
     """Unload plugins at the end of each test."""
     yield
