@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "beets",
+  "project_id": "f09e553a-9c04-477f-ac4e-22dcfa64fbfc"
+}
