@@ -178,6 +178,10 @@ Other changes
 - Path computation is faster: the query of each path format is now parsed once
   and reused instead of once per item, which speeds up ``beet move``,
   ``beet import`` and plugins that compute destinations for many items.
+- Path computation is faster again: the ``empty_component_replace`` setting is
+  resolved once instead of on every path component, and an item's album is only
+  fetched when a template actually reads an album-level field. Plugins that
+  compute many destinations, such as :doc:`plugins/alternatives`, benefit most.
 
 2.14.1 (September 17, 2026)
 ---------------------------
