@@ -1,4 +1,5 @@
 import logging
+import warnings
 from collections.abc import Iterable
 from concurrent.futures import ThreadPoolExecutor as BaseThreadPoolExecutor
 from threading import Event
@@ -6,7 +7,8 @@ from threading import Event
 import pytest
 import requests
 
-from beets import metadata_plugins
+from beets import metadata_plugins, plugins
+from beets.metadata_plugins import MetadataSourcePlugin
 from beets.test.helper import PluginMixin
 
 
@@ -151,6 +153,60 @@ class TestSearchApiMetadataSourcePlugin(PluginMixin):
         config["raise_on_error"] = True
 
         assert search_plugin._search_api("track", "", {}) == ()
+
+
+class TestLegacyPluginNotMetadataSource(PluginMixin):
+    """A BeetsPlugin that only sets ``data_source`` is no longer a
+    metadata source: it is neither discovered nor given the interface.
+    """
+
+    class LegacyPlugin(plugins.BeetsPlugin):
+        data_source = "legacy"
+
+    @pytest.fixture(autouse=True)
+    def setup(self, config, monkeypatch):
+        metadata_plugins.find_metadata_source_plugins.cache_clear()
+        self.legacy = self.LegacyPlugin("legacy")
+        monkeypatch.setattr(
+            metadata_plugins, "find_plugins", lambda: [self.legacy]
+        )
+        yield
+        metadata_plugins.find_metadata_source_plugins.cache_clear()
+
+    def test_legacy_plugin_not_in_metadata_sources(self):
+        found = metadata_plugins.find_metadata_source_plugins()
+
+        assert self.legacy not in found
+        assert found == []
+
+    def test_legacy_plugin_does_not_gain_interface(self):
+        assert not hasattr(self.legacy, "albums_for_ids")
+        assert not hasattr(self.legacy, "tracks_for_ids")
+        assert not hasattr(self.legacy, "data_source_mismatch_penalty")
+
+
+class TestSourceWeightConfigIgnored(PluginMixin):
+    """Only ``data_source_mismatch_penalty`` configures the penalty; the
+    deprecated ``source_weight`` option is ignored without warning.
+    """
+
+    class SourceWeightPlugin(metadata_plugins.MetadataSourcePlugin):
+        def album_for_id(self, *args, **kwargs): ...
+        def track_for_id(self, *args, **kwargs): ...
+        def candidates(self, *args, **kwargs): ...
+        def item_candidates(self, *args, **kwargs): ...
+
+    def test_source_weight_does_not_set_penalty(self, config):
+        plugin = self.SourceWeightPlugin("sourceweight")
+        plugin.config["source_weight"] = 0.2
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            penalty = plugin.data_source_mismatch_penalty
+
+        default = MetadataSourcePlugin.DEFAULT_DATA_SOURCE_MISMATCH_PENALTY
+        assert penalty == default
+        assert not any("source_weight" in str(w.message) for w in caught)
 
 
 def test_albums_for_ids_calls_each_plugin_once(monkeypatch):

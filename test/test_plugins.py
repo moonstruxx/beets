@@ -543,26 +543,6 @@ class TestImportPlugin:
         assert result.returncode == 0, result.stdout + result.stderr
 
 
-class TestDeprecationCopy:
-    # TODO: remove this test in Beets 3.0.0
-    def test_legacy_metadata_plugin_deprecation(self):
-        """Test that a MetadataSourcePlugin with 'legacy' data_source
-        raises a deprecation warning and all function and properties are
-        copied from the base class.
-        """
-        with pytest.warns(DeprecationWarning, match="LegacyMetadataPlugin"):
-
-            class LegacyMetadataPlugin(plugins.BeetsPlugin):
-                data_source = "legacy"
-
-        # Assert all methods are present
-        assert hasattr(LegacyMetadataPlugin, "albums_for_ids")
-        assert hasattr(LegacyMetadataPlugin, "tracks_for_ids")
-        assert hasattr(LegacyMetadataPlugin, "data_source_mismatch_penalty")
-        assert hasattr(LegacyMetadataPlugin, "_extract_id")
-        assert hasattr(LegacyMetadataPlugin, "get_artist")
-
-
 class TestMusicBrainzPluginLoading:
     @pytest.fixture(autouse=True)
     def config(self, config):
@@ -577,22 +557,3 @@ class TestMusicBrainzPluginLoading:
         config["plugins"] = ["anything"]
 
         assert "musicbrainz" not in plugins.get_plugin_names()
-
-    def test_deprecated_enabled(self, config, caplog):
-        config["plugins"] = ["anything"]
-        config["musicbrainz"]["enabled"] = True
-
-        assert "musicbrainz" in plugins.get_plugin_names()
-        assert (
-            "musicbrainz.enabled' configuration option is deprecated"
-            in caplog.text
-        )
-
-    def test_deprecated_disabled(self, config, caplog):
-        config["musicbrainz"]["enabled"] = False
-
-        assert "musicbrainz" not in plugins.get_plugin_names()
-        assert (
-            "musicbrainz.enabled' configuration option is deprecated"
-            in caplog.text
-        )
