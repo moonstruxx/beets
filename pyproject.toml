@@ -172,6 +172,7 @@ exclude = [
     "docs/_build/",
     "docs/modd.conf",
     "docs/**/*.css",
+    ".beads/",
 ]
 
 [tool.uv]

@@ -1,0 +1,36 @@
+{
+  "version": 2,
+  "generatedAt": "2026-11-07T22:35:01.240Z",
+  "onboardVersion": "1.6.7",
+  "opencodeVersion": "opencode v2.1.2",
+  "platform": {
+    "backlog": "none",
+    "repo": "none"
+  },
+  "models": {
+    "plan": "opencode/deepseek-v4-flash-free",
+    "build": "opencode/deepseek-v4-flash-free",
+    "fast": "opencode/deepseek-v4-flash-free"
+  },
+  "agents": {
+    "maxConcurrent": 3
+  },
+  "source": {
+    "mode": "current",
+    "roots": [
+      "/home/bjoern/git/beets"
+    ]
+  },
+  "tools": {
+    "rtk": false,
+    "quota": false,
+    "caveman": true,
+    "codegraph": false,
+    "memory": false
+  },
+  "preexisting": {
+    "design": false,
+    "architecture": false,
+    "openspec": false
+  }
+}
